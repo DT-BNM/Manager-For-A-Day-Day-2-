@@ -317,7 +317,7 @@
         icon: "🎓",
         color: "#a78bfa",
         name: "Resource Management Section",
-        what: "We look after staff confirmation, professional certificates such as PPKM, and DOP (our HR site), plus the resources, budget and training that keep the department running."
+        what: "We look after staff confirmation, professional certificates such as PPKM, the resources, budget and training that keep the department running."
       },
       OPRISK: {
         icon: "🛡️",
@@ -393,24 +393,24 @@
       {
         team: "RMS",
         time: "09:00",
-        title: "Details have changed",
-        scenario: "DOP is our HR site, where staff records are kept. A colleague has moved house and changed their phone number.",
+        title: "Confirmation is approaching",
+        scenario: "A colleague is approaching the end of their probation period and wants to know whether anything needs to be completed for their staff confirmation.",
         ask: "What should they do?",
         options: [
           {
-            text: "Do nothing. The old details are probably fine",
+            text: "Wait and assume confirmation will happen automatically",
             points: POINTS_POOR,
-            why: "Out-of-date records cause problems with official notices and in an emergency, when we need to reach people."
+            why: "Waiting could mean that required forms, reviews, or approvals are not completed on time."
           },
           {
-            text: "Tell only the colleagues they sit with",
+            text: "Ask another recently confirmed colleague what happened",
             points: POINTS_PARTIAL,
-            why: "Helpful for the team, but the official staff record would still be wrong."
+            why: "Their experience may be useful, but requirements and timelines may differ."
           },
           {
-            text: "Tell RMS so their record on DOP is updated",
+            text: "Check with their manager and RMS about the confirmation process",
             points: POINTS_BEST,
-            why: "Correct. RMS looks after DOP, so telling them keeps the official record accurate."
+            why: "Correct. RMS can explain the process, required documents, and relevant deadlines, while the manager completes the necessary assessment."
           }
         ]
       },
