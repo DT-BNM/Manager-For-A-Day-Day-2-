@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manager for a Day: Day 2</title>
+
+  <style>
+    /* =====================================================================
+       STYLES
+       1. Colours and base   2. Layout   3. Buttons and inputs
+       4. Question screen    5. Final screen
+       ===================================================================== */
+
+
+    /* ---------- 1. Colours and base ---------- */
+
+    :root {
+      --bg:   #0f172a;   /* page background */
+      --card: #1e293b;   /* card background */
+      --line: #334155;   /* borders and dividers */
+      --text: #f1f5f9;   /* main text */
+      --mute: #94a3b8;   /* secondary text */
+      --acc:  #38bdf8;   /* accent (buttons, progress bar) */
+      --good: #34d399;   /* best answer */
+      --mid:  #fbbf24;   /* partly right answer */
+      --bad:  #f87171;   /* risky answer and errors */
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin: 0.2em 0;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      margin: 0.2em 0 0.5em;
+    }
+
+    .mute  { color: var(--mute); }
+    .small { font-size: 0.9rem; }
+
+
+    /* ---------- 2. Layout ---------- */
+
+    main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px 16px 48px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+
+    /* Strip above the question card: holds the clock */
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .clock {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar {
+      height: 8px;
+      background: var(--line);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .bar > div {
+      height: 100%;
+      background: var(--acc);
+      transition: width 0.3s;
+    }
+
+
+    /* ---------- 3. Buttons and inputs ---------- */
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .btn {
+      background: var(--acc);
+      color: #082f49;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    /* Outlined version, used for "Play again" */
+    .btn.alt {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    input[type=text] {
+      width: 100%;
+      margin: 8px 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0b1222;
+      color: var(--text);
+    }
+
+    .err {
+      color: var(--bad);
+      min-height: 1.5em;   /* keeps the layout still when a message appears */
+    }
+
+
+    /* ---------- 4. Question screen ---------- */
+
+    /* Team banner at the top of each question */
+    .team {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 10px 14px;
+      background: #0b1222;
+      border-left: 5px solid var(--tc, var(--acc));   /* --tc is set per team in the HTML */
+      border-radius: 12px;
+    }
+
+    .team .ic { font-size: 2rem; }
+    .team b   { display: block; }
+
+    /* Small coloured team label, e.g. FRM */
+    .tag {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 1px 10px;
+      background: var(--tc);
+      color: #0b1222;
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    /* Full team name, highlighted in the team's colour */
+    .team-name {
+      color: var(--tc);
+      font-weight: 800;
+    }
+
+    /* Answer buttons */
+    .opt {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 14px;
+      text-align: left;
+      background: #0b1222;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .opt:hover:enabled { border-color: var(--acc); }
+    .opt:disabled      { cursor: default; }
+
+    /* Colours applied after the player answers */
+    .opt.best   { border-color: var(--good); background: #064e3b55; }
+    .opt.ok     { border-color: var(--mid);  background: #78350f44; }
+    .opt.poor   { border-color: var(--bad);  background: #7f1d1d44; }
+    .opt.picked { outline: 2px solid var(--text); }
+
+    /* Feedback label ("Great call!" and so on) */
+    .fb b.g { color: var(--good); }
+    .fb b.m { color: var(--mid); }
+    .fb b.b { color: var(--bad); }
+
+    /* Optional list of figures under a question (e.g. fund returns) */
+    .facts {
+      margin: 0 0 12px;
+      padding: 10px 14px 10px 32px;
+      background: #0b1222;
+      border-radius: 12px;
+    }
+
+    /* Optional plain-English tip under a question */
+    .hint {
+      margin: 0 0 12px;
+      padding: 10px 14px;
+      background: #082f4955;
+      border-left: 4px solid var(--acc);
+      border-radius: 8px;
+      font-size: 0.92rem;
+    }
+
+
+    /* ---------- 5. Final screen ---------- */
+
+    /* Passport stamps */
+    .stamps {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .stamp {
+      padding: 6px 10px;
+      border: 2px dashed var(--tc);
+      border-radius: 12px;
+      color: var(--tc);
+      font-weight: 800;
+      transform: rotate(-3deg);
+    }
+
+    .stamp:nth-child(even) {
+      transform: rotate(3deg);
+    }
+
+    /* "Meet the teams" list */
+    .meet {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .meet li {
+      display: flex;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .meet li:last-child {
+      border: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- The whole game is drawn into this element by the script below -->
+  <main id="app"></main>
+
+  <script>
+    "use strict";
+
+    /* =====================================================================
+       CONTENTS
+       1. Settings
+       2. Teams            (names, icons, colours, descriptions)
+       3. Questions        (the ten moments of the day)
+       4. Game state
+       5. Small helpers    (text tidying, email checks)
+       6. Screens          (start, question, finish)
+       7. Excel download   (builds a real .xlsx file with no libraries)
+       8. Start the game
+       ===================================================================== */
+
+
+    /* =====================================================================
+       1. SETTINGS
+       ===================================================================== */
+
+    const POINTS_BEST    = 100;   // best choice
+    const POINTS_PARTIAL = 50;    // partly right choice
+    const POINTS_POOR    = 0;     // risky choice
+
+    const SUBMIT_LABEL_NEXT = "Next moment";
+    const SUBMIT_LABEL_LAST = "Close the day";
+
+    // Which day this file is for. It appears on the start screen and as the sheet name in Excel.
+    // (The Day 1 and Day 2 files share all the same code. Only DAY_LABEL and QUESTIONS differ.)
+    const DAY_LABEL = "Day 2";
+
+
+    /* =====================================================================
+       2. TEAMS
+       To change a team's wording, edit it here. It updates everywhere.
+       "name" is the full team name (shown highlighted, followed by the abbreviation),
+       "what" is the longer plain-English description.
+       ===================================================================== */
+
+    const TEAMS = {
+      RMS: {
+        icon: "🎓",
+        color: "#a78bfa",
+        name: "Resource Management Section",
+        what: "We look after staff confirmation, professional certificates such as PPKM, and DOP (our HR site), plus the resources, budget and training that keep the department running."
+      },
+      OPRISK: {
+        icon: "🛡️",
+        color: "#fb923c",
+        name: "Operational Risk",
+        what: "We look for things that could go wrong, such as mistakes, broken processes, system failures or outside events, before they cause losses."
+      },
+      FMT: {
+        icon: "🖥️",
+        color: "#38bdf8",
+        name: "Financial Market Technology",
+        what: "We build and look after the computer systems that our treasury (money-handling) teams use every day."
+      },
+      DART: {
+        icon: "📊",
+        color: "#34d399",
+        name: "Data Analytics, Reporting and Technology",
+        what: "We look after the department's data and use it to find insights and make work more digital."
+      },
+      FRM: {
+        icon: "📈",
+        color: "#f472b6",
+        name: "Financial Risk Management",
+        what: "We keep an eye on how risky our investments are, check we stay within the rules, report any breach to senior management, and explain how our investments performed."
+      },
+      COMPLC: {
+        icon: "⚖️",
+        color: "#fbbf24",
+        name: "Compliance",
+        what: "We make sure everyone follows the rules, the laws and our code of conduct."
+      },
+      PMO: {
+        icon: "🗂️",
+        color: "#2dd4bf",
+        name: "Project Management Office",
+        what: "We are the project managers. We keep projects on time, on budget, and make sure everyone knows who is doing what."
+      }
+    };
+
+    // The order teams appear on the start screen, the passport and "Meet the teams"
+    const TEAM_ORDER = ["RMS", "OPRISK", "FMT", "DART", "FRM", "COMPLC", "PMO"];
+
+
+    /* =====================================================================
+       3. QUESTIONS
+       One entry per moment of the day, in the order they are played.
+
+         team         key from TEAMS above
+         time         the clock time shown at the top of the screen
+         title        short heading
+         scenario     the situation, in plain English
+         facts        (optional) a short list of figures shown under the scenario
+         hint         (optional) a plain-English tip for people outside the team
+         ask          (optional) the line above the answers. Default: "What would you do?"
+         hideTeamName (optional) true = the banner shows only the abbreviation. Use it when the
+                      full team name would give away the answer.
+         explanation  (optional) shown after answering. Used for any option without its own "why"
+         options      three or four choices, each with:
+                        text    what the player reads on the button
+                        points  POINTS_BEST, POINTS_PARTIAL or POINTS_POOR
+                        why     (optional) explanation for this particular choice
+
+       Rules to keep the scoring fair:
+         - Every question needs exactly ONE option worth POINTS_BEST.
+         - Ten questions at 100 points gives the 1,000 maximum.
+         - The order of the answers is shuffled every time, so the position of
+           the right answer does not matter.
+       ===================================================================== */
+
+    const QUESTIONS = [
+
+      // ---- 09:00  RMS ----
+      {
+        team: "RMS",
+        time: "09:00",
+        title: "Details have changed",
+        scenario: "DOP is our HR site, where staff records are kept. A colleague has moved house and changed their phone number.",
+        ask: "What should they do?",
+        options: [
+          {
+            text: "Do nothing. The old details are probably fine",
+            points: POINTS_POOR,
+            why: "Out-of-date records cause problems with official notices and in an emergency, when we need to reach people."
+          },
+          {
+            text: "Tell only the colleagues they sit with",
+            points: POINTS_PARTIAL,
+            why: "Helpful for the team, but the official staff record would still be wrong."
+          },
+          {
+            text: "Tell RMS so their record on DOP is updated",
+            points: POINTS_BEST,
+            why: "Correct. RMS looks after DOP, so telling them keeps the official record accurate."
+          }
+        ]
+      },
+
+      // ---- 09:45  DART ----
+      {
+        team: "DART",
+        time: "09:45",
+        title: "Automating a weekly report",
+        scenario: "A team wants to automate a report that someone currently makes by hand every week.",
+        ask: "What is the best way to go about it?",
+        explanation: "Automation works best when you understand the process first, confirm what is needed, test it properly and get the right approvals. Skipping steps can quietly break controls or produce wrong numbers.",
+        options: [
+          {
+            text: "Switch it on straight away without testing",
+            points: POINTS_POOR
+          },
+          {
+            text: "Understand the process, confirm what is needed, test it properly and get the right approvals",
+            points: POINTS_BEST
+          },
+          {
+            text: "Automate only the easy steps and ignore the checks",
+            points: POINTS_POOR
+          },
+          {
+            text: "Ask one colleague to run it from their personal device",
+            points: POINTS_POOR
+          }
+        ]
+      },
+
+      // ---- 10:30  FRM ----
+      {
+        team: "FRM",
+        time: "10:30",
+        title: "Which fund gives the best reward for its risk?",
+        scenario: "With no risk at all, you could earn a 'safe rate' of 3%. Four funds are on offer:",
+        facts: [
+          "Fund A: expected return 8%, volatility 10%",
+          "Fund B: expected return 11%, volatility 20%",
+          "Fund C: expected return 7%, volatility 6%",
+          "Fund D: expected return 5%, volatility 4%"
+        ],
+        hint: "The Sharpe ratio shows how much extra return you get for each unit of risk you take. Higher is better. Volatility means how much the value swings up and down.",
+        ask: "Which fund has the best return for the risk taken?",
+        explanation: "Sharpe ratio = (return minus safe rate) divided by volatility. Fund A: (8-3)/10 = 0.50. Fund B: (11-3)/20 = 0.40. Fund C: (7-3)/6 = 0.67. Fund D: (5-3)/4 = 0.50. Fund C earns the most extra return for each unit of risk. Fund B has the biggest headline return, but it needs a lot more risk to get it.",
+        options: [
+          {
+            text: "Fund A",
+            points: POINTS_POOR
+          },
+          {
+            text: "Fund B",
+            points: POINTS_POOR
+          },
+          {
+            text: "Fund C",
+            points: POINTS_BEST
+          },
+          {
+            text: "Fund D",
+            points: POINTS_POOR
+          }
+        ]
+      },
+
+      // ---- 11:15  FMT ----
+      {
+        team: "FMT",
+        time: "11:15",
+        title: "A backup nobody has tested",
+        scenario: "Our treasury system is backed up every night. Someone points out that nobody has tried restoring from a backup for over a year.",
+        hint: "A backup is a spare copy of our data. Restoring means using that copy to bring the system back.",
+        ask: "What should we do?",
+        options: [
+          {
+            text: "Don't worry. It is backed up every night, so it must work",
+            points: POINTS_POOR,
+            why: "A backup you have never restored is a hope, not a plan. Problems such as missing or damaged files only show up when you try."
+          },
+          {
+            text: "Ask the supplier to confirm it works",
+            points: POINTS_PARTIAL,
+            why: "Helpful, but only a real test on our own setup proves it works for us."
+          },
+          {
+            text: "Test a restore on a safe copy, check the data is complete, and schedule regular tests",
+            points: POINTS_BEST,
+            why: "Correct. Practising a restore is the only way to know the backup will save us on a bad day."
+          }
+        ]
+      },
+
+      // ---- 12:00  COMPLC ----
+      {
+        team: "COMPLC",
+        time: "12:00",
+        title: "A friend asks for a tip",
+        scenario: "At lunch an old friend asks: 'You work in treasury. Where are interest rates going? Anything coming that I should know about?' You have read an internal paper that is not public yet.",
+        options: [
+          {
+            text: "Give them a hint. They are a friend and it is only a tip",
+            points: POINTS_POOR,
+            why: "Sharing information that is not public can harm the Bank and breaks the code of conduct, even between friends."
+          },
+          {
+            text: "Don't mention the paper, but tell them what you personally expect",
+            points: POINTS_PARTIAL,
+            why: "Your 'personal view' can still be taken as a hint when it comes from someone with inside knowledge."
+          },
+          {
+            text: "Say you can't discuss anything that is not public, and tell Compliance if they keep asking",
+            points: POINTS_BEST,
+            why: "Correct. A polite no protects your friend, the Bank and you."
+          }
+        ]
+      },
+
+      // ---- 13:00  DART ----
+      {
+        team: "DART",
+        time: "13:00",
+        title: "What good data looks like",
+        scenario: "Your team keeps lots of data. Which of these describes good data management?",
+        ask: "Which one is right?",
+        explanation: "Good data is accurate, complete, consistent and up to date, and it is protected so only the right people can see it. Open access for everyone, fixing things only when someone complains, or scattering copies across many files all make data less reliable and less safe.",
+        options: [
+          {
+            text: "Accurate, complete, consistent, up to date and properly protected",
+            points: POINTS_BEST
+          },
+          {
+            text: "Open to everyone, with no access limits",
+            points: POINTS_POOR
+          },
+          {
+            text: "Updated only when someone reports an error",
+            points: POINTS_POOR
+          },
+          {
+            text: "Stored in as many separate files as possible",
+            points: POINTS_POOR
+          }
+        ]
+      },
+
+      // ---- 14:00  OPRISK ----
+      {
+        team: "OPRISK",
+        time: "14:00",
+        title: "The system goes down",
+        scenario: "A critical Treasury system stops working during business hours.",
+        hint: "'Business continuity' means the plan for keeping important work going when something breaks.",
+        ask: "What is the best response?",
+        explanation: "Follow the escalation and business continuity procedures straight away. They exist so the right people are told quickly and the work carries on safely. Waiting, working around approvals or gossiping in a chat can all make the problem bigger.",
+        options: [
+          {
+            text: "Wait and hope it recovers by itself",
+            points: POINTS_POOR
+          },
+          {
+            text: "Follow the escalation and business continuity steps straight away",
+            points: POINTS_BEST
+          },
+          {
+            text: "Keep processing transactions by hand without approval",
+            points: POINTS_POOR
+          },
+          {
+            text: "Post about it in the office group chat",
+            points: POINTS_POOR
+          }
+        ]
+      },
+
+      // ---- 15:00  RMS ----
+      {
+        team: "RMS",
+        time: "15:00",
+        title: "Confirmation is due",
+        scenario: "A new colleague has finished their probation, and their confirmation as a permanent member of staff is due this month.",
+        hint: "Probation is the trial period at the start of a job. Confirmation is when the job is made permanent.",
+        ask: "What should happen?",
+        options: [
+          {
+            text: "Nobody needs to do anything. It will sort itself out",
+            points: POINTS_POOR,
+            why: "Confirmations need people to act. Left alone, they can be missed or delayed."
+          },
+          {
+            text: "Tell their manager only",
+            points: POINTS_PARTIAL,
+            why: "A good start, but RMS looks after staff confirmation, so they need to be in the loop too."
+          },
+          {
+            text: "Make sure their manager and RMS both know, so the assessment and paperwork are done on time",
+            points: POINTS_BEST,
+            why: "Correct. RMS handles staff confirmation, and it goes smoothly when everyone starts early."
+          }
+        ]
+      },
+
+      // ---- 16:00  FMT ----
+      {
+        team: "FMT",
+        time: "16:00",
+        title: "Push it live before everyone goes home",
+        scenario: "It is 4 pm. A developer wants to release an update to the live treasury system so it is 'done before everyone leaves'. It has only been tested on their own computer.",
+        ask: "What should happen?",
+        options: [
+          {
+            text: "Release it now so it's done",
+            points: POINTS_POOR,
+            why: "A rushed release to the live system can break things just as people are leaving, when fewer people are around to fix it."
+          },
+          {
+            text: "Release it, but keep an eye on it",
+            points: POINTS_PARTIAL,
+            why: "Watching helps, but it has not been properly tested, so you may only find the problem after it happens."
+          },
+          {
+            text: "Test it properly in a test setup, get approval, and release it at a quiet time with a way to undo it",
+            points: POINTS_BEST,
+            why: "Correct. Careful testing, approval and a way back are what keep the live system safe."
+          }
+        ]
+      },
+
+      // ---- 17:00  PMO ----
+      {
+        team: "PMO",
+        time: "17:00",
+        title: "Who owns this?",
+        scenario: "Two teams are working on the same project. Each thinks the other is responsible for a key task, the deadline is next week, and nobody has started it.",
+        options: [
+          {
+            text: "Wait and see which team starts first",
+            points: POINTS_POOR,
+            why: "Waiting wastes time you don't have, and the task may never get started."
+          },
+          {
+            text: "Tell the project owner there is a problem and leave them to sort it out",
+            points: POINTS_PARTIAL,
+            why: "Raising it is good, but a project manager should help fix it by bringing the teams together."
+          },
+          {
+            text: "Bring both teams together, agree who owns the task and by when, and write it down",
+            points: POINTS_BEST,
+            why: "Correct. Clear owners and dates are the heart of project management."
+          }
+        ]
+      }
+    ];
+
+
+    /* =====================================================================
+       4. GAME STATE
+       "app" is the page element we draw into.
+       "game" holds the current player's run. It is null on the start screen.
+         game.email     the player's email (lowercase, tidied)
+         game.index     which question we are on (0 = first)
+         game.options   this question's answers in the (shuffled) order shown
+         game.score     running total, never shown to the player
+         game.answered  true once they have picked an answer for this question
+       Nothing is stored in the browser, so a refresh starts a fresh game.
+       ===================================================================== */
+
+    const app = document.getElementById("app");
+    let game = null;
+
+
+    /* =====================================================================
+       5. SMALL HELPERS
+       ===================================================================== */
+
+    // Makes text safe to place inside HTML
+    function escapeHtml(text) {
+      const replacements = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" };
+      return String(text).replace(/[&<>"]/g, (char) => replacements[char]);
+    }
+
+    // Sets the team colour used by the CSS (--tc) on an element
+    function teamColorStyle(teamKey) {
+      return `--tc:${TEAMS[teamKey].color}`;
+    }
+
+    // Lowercases, removes spaces and strips hidden control characters
+    function cleanEmail(text) {
+      const controlCharacters = new RegExp("[\\u0000-\\u001f\\u007f\\u2028\\u2029]", "g");
+      return String(text)
+        .replace(controlCharacters, "")
+        .replace(/\s+/g, "")
+        .toLowerCase();
+    }
+
+    // Returns an error message to show the player, or "" if the email is fine
+    function emailProblem(text) {
+      const email = cleanEmail(text);
+      const looksLikeEmail = /^[a-z0-9._%+'-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+
+      if (!email)                    return "Please enter your email address.";
+      if (email.length > 80)         return "That email looks too long.";
+      if (!looksLikeEmail.test(email)) return "Please enter a valid email, like name@bnm.gov.my.";
+      return "";
+    }
+
+    // Turns an email into a safe file name (used for the Excel download)
+    function fileNameFromEmail(email) {
+      const safe = cleanEmail(email)
+        .replace(/[^a-z0-9._@+'-]/g, "_")
+        .replace(/^[._]+|[._]+$/g, "");
+      return (safe || "player") + ".xlsx";
+    }
+
+    // "alex.tan@bnm.gov.my" becomes "Alex". Returns "" if it can't tell.
+    function firstNameFromEmail(email) {
+      const beforeAt = email.split("@")[0];
+      const firstPart = beforeAt.split(/[._+\-0-9]+/)[0];
+      if (!firstPart) return "";
+      return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
+    }
+
+
+    /* =====================================================================
+       6. SCREENS
+       Each screen builds some HTML, puts it in "app", then attaches
+       click handlers to the buttons it created.
+       ===================================================================== */
+
+
+    /* ---------- Start screen ---------- */
+
+    function showStartScreen() {
+      game = null;
+
+      // One coloured label per team
+      const teamLabels = TEAM_ORDER.map((key) => `
+        <span class="tag" style="${teamColorStyle(key)}">${TEAMS[key].icon} ${key}</span>
+      `).join(" ");
+
+      app.innerHTML = `
+        <div class="card">
+          <div style="font-size:3rem">🏢</div>
+          <h1>Manager for a Day</h1>
+          <p><span class="tag" style="--tc:var(--acc)">${DAY_LABEL}</span></p>
+
+          <p>
+            Spend one working day, 9:00 to 17:00, running our department.
+            Ten things will land on your desk. Choose what you would do,
+            collect points, and meet the seven teams that keep everything running.
+          </p>
+
+          <p style="line-height:2">${teamLabels}</p>
+
+          <p class="mute small">
+            About 5 minutes. No finance knowledge needed.
+            Up to 100 points per moment, 1,000 in total.
+          </p>
+
+          <label for="email"><b>Your email address</b></label>
+          <input id="email" type="text" inputmode="email" maxlength="80"
+                 autocomplete="off" autocapitalize="none" spellcheck="false"
+                 placeholder="name@bnm.gov.my">
+          <p class="mute small" style="margin:0 0 8px">
+            Used only to name your results file. Nothing is sent anywhere.
+          </p>
+
+          <div class="err" id="error" role="alert"></div>
+          <button class="btn" id="start">Start my day</button>
+        </div>
+      `;
+
+      const emailInput = document.getElementById("email");
+
+      function startGame() {
+        const problem = emailProblem(emailInput.value);
+        if (problem) {
+          document.getElementById("error").textContent = problem;
+          emailInput.focus();
+          return;
+        }
+        game = {
+          email: cleanEmail(emailInput.value),
+          index: 0,
+          score: 0,
+          answered: false
+        };
+        showQuestion();
+      }
+
+      document.getElementById("start").onclick = startGame;
+      emailInput.onkeydown = (event) => {
+        if (event.key === "Enter") startGame();
+      };
+      emailInput.focus();
+    }
+
+
+    /* ---------- Question screen ---------- */
+
+    // Returns a shuffled copy of a list (the original is left alone)
+    function shuffled(list) {
+      const copy = list.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function showQuestion() {
+      const question = QUESTIONS[game.index];
+      const team = TEAMS[question.team];
+      game.answered = false;
+      game.options = shuffled(question.options);
+
+      const progressPercent = (game.index / QUESTIONS.length) * 100;
+
+      // Banner title: the full team name (highlighted), then the abbreviation.
+      // A question can set hideTeamName: true when the full name would give away its answer.
+      const abbreviationTag = `<span class="tag" style="${teamColorStyle(question.team)}">${question.team}</span>`;
+      const teamTitle = question.hideTeamName
+        ? abbreviationTag
+        : `<span class="team-name">${escapeHtml(team.name)}</span> ${abbreviationTag}`;
+
+      const answerButtons = game.options.map((option, position) => `
+        <button class="opt" data-k="${position}">${escapeHtml(option.text)}</button>
+      `).join("");
+
+      // Optional extras: a list of figures and a plain-English tip
+      const factsHtml = question.facts
+        ? `<ul class="facts">${question.facts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join("")}</ul>`
+        : "";
+      const hintHtml = question.hint
+        ? `<p class="hint">💡 <b>In plain English:</b> ${escapeHtml(question.hint)}</p>`
+        : "";
+
+      app.innerHTML = `
+        <div class="top">
+          <span class="clock">🕘 ${question.time}</span>
+        </div>
+        <div class="bar"><div style="width:${progressPercent}%"></div></div>
+
+        <div class="card">
+
+          <!-- Team banner: who we are meeting at this stop -->
+          <div class="team" style="${teamColorStyle(question.team)}">
+            <span class="ic">${team.icon}</span>
+            <div>
+              <b>
+                ${teamTitle}
+              </b>
+              <span class="small mute">${escapeHtml(team.what)}</span>
+            </div>
+          </div>
+
+          <h2>${escapeHtml(question.title)}</h2>
+          <p>${escapeHtml(question.scenario)}</p>
+          ${factsHtml}
+          ${hintHtml}
+          <p class="mute small">${escapeHtml(question.ask || "What would you do?")}</p>
+
+          ${answerButtons}
+
+          <!-- Feedback is placed here after the player answers -->
+          <div id="feedback"></div>
+        </div>
+      `;
+
+      app.querySelectorAll(".opt").forEach((button) => {
+        button.onclick = () => answerQuestion(Number(button.dataset.k));
+      });
+    }
+
+    // Which CSS class colours an answer button, based on its points
+    function answerClass(points) {
+      if (points === POINTS_BEST)    return "best";
+      if (points === POINTS_PARTIAL) return "ok";
+      return "poor";
+    }
+
+    // Called when the player clicks an answer
+    function answerQuestion(chosenPosition) {
+      if (game.answered) return;          // ignore double clicks
+      game.answered = true;
+
+      const question = QUESTIONS[game.index];
+      const chosen = game.options[chosenPosition];
+      const best = game.options.find((option) => option.points === POINTS_BEST);
+      const isLastQuestion = game.index === QUESTIONS.length - 1;
+
+      // Score is kept quietly. It is never shown on screen.
+      game.score += chosen.points;
+
+      // Colour every answer so the player can see which was best
+      app.querySelectorAll(".opt").forEach((button, position) => {
+        button.disabled = true;
+        button.classList.add(answerClass(game.options[position].points));
+        if (position === chosenPosition) button.classList.add("picked");
+      });
+
+      // Short label above the explanation (no points shown)
+      let label;
+      if (chosen.points === POINTS_BEST)         label = '<b class="g">Great call!</b>';
+      else if (chosen.points === POINTS_PARTIAL) label = '<b class="m">Partly right.</b>';
+      else                                       label = '<b class="b">Not quite.</b>';
+
+      // The explanation: this choice's own "why", otherwise the question's general one
+      const explanation = chosen.why || question.explanation || "";
+
+      // If they did not pick the best answer, remind them what it was
+      const bestAnswerNote = chosen.points === POINTS_BEST
+        ? ""
+        : `<p class="small mute">Best answer: ${escapeHtml(best.text)}</p>`;
+
+      document.getElementById("feedback").innerHTML = `
+        <div class="fb" style="margin-top:14px">
+          ${label}
+          <p>${escapeHtml(explanation)}</p>
+          ${bestAnswerNote}
+          <button class="btn" id="next">${isLastQuestion ? SUBMIT_LABEL_LAST : SUBMIT_LABEL_NEXT}</button>
+        </div>
+      `;
+
+      const nextButton = document.getElementById("next");
+      nextButton.onclick = () => {
+        if (isLastQuestion) {
+          showFinishScreen();
+        } else {
+          game.index += 1;
+          showQuestion();
+        }
+      };
+      nextButton.focus();
+    }
+
+
+    /* ---------- Finish screen ---------- */
+
+    // Note: the score is deliberately NOT shown here. It only goes into the Excel file.
+    function showFinishScreen() {
+      const firstName = firstNameFromEmail(game.email);
+      const greeting = firstName ? `, ${escapeHtml(firstName)}` : "";
+
+      // Passport stamps (one per team)
+      const stamps = TEAM_ORDER.map((key) => `
+        <span class="stamp" style="${teamColorStyle(key)}">${TEAMS[key].icon} ${TEAMS[key].name} (${key})</span>
+      `).join("");
+
+      // "Meet the teams" list
+      const teamList = TEAM_ORDER.map((key) => `
+        <li>
+          <span style="font-size:1.8rem">${TEAMS[key].icon}</span>
+          <div>
+            <b><span class="team-name" style="${teamColorStyle(key)}">${escapeHtml(TEAMS[key].name)}</span> <span class="tag" style="${teamColorStyle(key)}">${key}</span></b><br>
+            <span class="small mute">${escapeHtml(TEAMS[key].what)}</span>
+          </div>
+        </li>
+      `).join("");
+
+      app.innerHTML = `
+        <div class="card" style="text-align:center">
+          <div style="font-size:3rem">🏆</div>
+          <h1>Day complete${greeting}!</h1>
+
+          <p>
+            Thanks for running the department for a day. Download your results
+            file and hand it to a member of staff, who will check it for you.
+          </p>
+
+          <button class="btn" id="download">⬇ Download my Excel results</button>
+
+          <p class="small mute" style="margin:18px 0 0">Your passport: all 7 teams visited</p>
+          <div class="stamps">${stamps}</div>
+
+          <button class="btn alt" id="again">Play again</button>
+        </div>
+
+        <div class="card">
+          <h2>Meet the teams</h2>
+          <ul class="meet">${teamList}</ul>
+        </div>
+      `;
+
+      document.getElementById("download").onclick = downloadResults;
+      document.getElementById("again").onclick = showStartScreen;
+    }
+
+
+    /* =====================================================================
+       7. EXCEL DOWNLOAD
+       Builds a genuine .xlsx file in the browser with no libraries.
+       An .xlsx is a zip file containing a few small XML files, so we
+       (a) write those XML files and (b) pack them into a zip.
+
+       What the file contains: one sheet named after the day ("Day 1" or "Day 2") with two columns,
+       Email and Total Score. To add a column, edit the two lists passed to
+       buildSheetXml() inside buildWorkbook(), and adjust the column widths.
+       ===================================================================== */
+
+    const XML_HEADER = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+
+
+    /* ---------- The files that make up the workbook ---------- */
+
+    const CONTENT_TYPES_XML = XML_HEADER + `
+      <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+        <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+        <Default Extension="xml" ContentType="application/xml"/>
+        <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+        <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+        <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+      </Types>`;
+
+    const ROOT_RELS_XML = XML_HEADER + `
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+      </Relationships>`;
+
+    // The sheet is named after the day ("Day 1" or "Day 2") so the files are easy to tell apart
+    function workbookXml(sheetName) {
+      return XML_HEADER + `
+      <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+                xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <sheets>
+          <sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/>
+        </sheets>
+      </workbook>`;
+    }
+
+    const WORKBOOK_RELS_XML = XML_HEADER + `
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+      </Relationships>`;
+
+    // Cell style 0 = normal. Cell style 1 = white bold text on a dark blue fill (the header row).
+    const STYLES_XML = XML_HEADER + `
+      <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+        <fonts count="2">
+          <font><sz val="11"/><name val="Calibri"/></font>
+          <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+        </fonts>
+        <fills count="3">
+          <fill><patternFill patternType="none"/></fill>
+          <fill><patternFill patternType="gray125"/></fill>
+          <fill><patternFill patternType="solid"><fgColor rgb="FF0F4C75"/></patternFill></fill>
+        </fills>
+        <borders count="1">
+          <border><left/><right/><top/><bottom/><diagonal/></border>
+        </borders>
+        <cellStyleXfs count="1">
+          <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+        </cellStyleXfs>
+        <cellXfs count="2">
+          <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+          <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+        </cellXfs>
+      </styleSheet>`;
+
+
+    /* ---------- Building the sheet ---------- */
+
+    // Makes text safe to place inside XML (also strips characters Excel rejects)
+    function escapeXml(text) {
+      return String(text)
+        .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    // 0 -> "A", 1 -> "B", and so on (enough for up to 26 columns)
+    function columnLetter(index) {
+      return String.fromCharCode(65 + index);
+    }
+
+    // rows: a list of rows, each a list of cells (text or numbers).
+    // The first row is treated as the header and given the header style.
+    // widths: column widths, one number per column.
+    function buildSheetXml(rows, widths) {
+      const columnsXml = widths.map((width, i) =>
+        `<col min="${i + 1}" max="${i + 1}" width="${width}" customWidth="1"/>`
+      ).join("");
+
+      const rowsXml = rows.map((cells, rowIndex) => {
+        const cellsXml = cells.map((value, columnIndex) => {
+          const ref = columnLetter(columnIndex) + (rowIndex + 1);   // e.g. "A2"
+
+          if (rowIndex === 0) {                                      // header row
+            return `<c r="${ref}" t="inlineStr" s="1"><is><t>${escapeXml(value)}</t></is></c>`;
+          }
+          if (typeof value === "number") {                           // numbers stay numbers
+            return `<c r="${ref}"><v>${value}</v></c>`;
+          }
+          return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+        }).join("");
+
+        return `<row r="${rowIndex + 1}">${cellsXml}</row>`;
+      }).join("");
+
+      return XML_HEADER +
+        `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+        `<cols>${columnsXml}</cols><sheetData>${rowsXml}</sheetData></worksheet>`;
+    }
+
+
+    /* ---------- Packing the files into a zip ---------- */
+
+    // Pre-computed table used to calculate a zip checksum (CRC-32)
+    const CRC_TABLE = (function () {
+      const table = [];
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) {
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[n] = c >>> 0;
+      }
+      return table;
+    })();
+
+    function crc32(bytes) {
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i++) {
+        crc = CRC_TABLE[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    // Writes a number as a fixed count of bytes, smallest byte first (zip format)
+    function littleEndian(value, byteCount) {
+      const bytes = [];
+      for (let i = 0; i < byteCount; i++) {
+        bytes.push((value >>> (8 * i)) & 255);
+      }
+      return bytes;
+    }
+
+    const textToBytes = (text) => new TextEncoder().encode(text);
+
+    // files: a list of [pathInsideZip, textContent]. Returns a downloadable Blob.
+    // Files are stored without compression, which keeps this code short.
+    function buildZip(files) {
+      const parts = [];            // everything that will be written, in order
+      const directory = [];        // notes for the zip's table of contents
+      let offset = 0;
+
+      // Zip stores the file time and date in a compact 16-bit form
+      const now = new Date();
+      const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+      const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+
+      // Each file: a small header, the file name, then the file's data
+      files.forEach(([path, text]) => {
+        const nameBytes = textToBytes(path);
+        const dataBytes = textToBytes(text);
+        const checksum = crc32(dataBytes);
+
+        const header = [].concat(
+          littleEndian(0x04034b50, 4),            // "local file header" marker
+          littleEndian(20, 2),                    // version needed
+          littleEndian(0x0800, 2),                // flags: names are UTF-8
+          littleEndian(0, 2),                     // no compression
+          littleEndian(dosTime, 2),
+          littleEndian(dosDate, 2),
+          littleEndian(checksum, 4),
+          littleEndian(dataBytes.length, 4),      // compressed size
+          littleEndian(dataBytes.length, 4),      // original size
+          littleEndian(nameBytes.length, 2),
+          littleEndian(0, 2)                      // no extra field
+        );
+
+        parts.push(new Uint8Array(header), nameBytes, dataBytes);
+        directory.push({ nameBytes, checksum, size: dataBytes.length, offset });
+        offset += header.length + nameBytes.length + dataBytes.length;
+      });
+
+      // The zip's table of contents, written after all the files
+      const directoryStart = offset;
+      directory.forEach((entry) => {
+        const record = [].concat(
+          littleEndian(0x02014b50, 4),            // "central directory" marker
+          littleEndian(20, 2),                    // version made by
+          littleEndian(20, 2),                    // version needed
+          littleEndian(0x0800, 2),                // flags: names are UTF-8
+          littleEndian(0, 2),                     // no compression
+          littleEndian(dosTime, 2),
+          littleEndian(dosDate, 2),
+          littleEndian(entry.checksum, 4),
+          littleEndian(entry.size, 4),
+          littleEndian(entry.size, 4),
+          littleEndian(entry.nameBytes.length, 2),
+          littleEndian(0, 2),                     // extra field length
+          littleEndian(0, 2),                     // comment length
+          littleEndian(0, 2),                     // disk number
+          littleEndian(0, 2),                     // internal attributes
+          littleEndian(0, 4),                     // external attributes
+          littleEndian(entry.offset, 4)           // where this file starts
+        );
+        parts.push(new Uint8Array(record), entry.nameBytes);
+        offset += record.length + entry.nameBytes.length;
+      });
+
+      // Final marker that says where the table of contents is
+      const ending = [].concat(
+        littleEndian(0x06054b50, 4),
+        littleEndian(0, 2),
+        littleEndian(0, 2),
+        littleEndian(directory.length, 2),
+        littleEndian(directory.length, 2),
+        littleEndian(offset - directoryStart, 4),
+        littleEndian(directoryStart, 4),
+        littleEndian(0, 2)
+      );
+      parts.push(new Uint8Array(ending));
+
+      return new Blob(parts, {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+    }
+
+
+    /* ---------- The download itself ---------- */
+
+    function buildWorkbook(email, score) {
+      const sheetXml = buildSheetXml(
+        [
+          ["Email", "Total Score"],     // header row
+          [email, score]                // the player's row
+        ],
+        [34, 14]                        // column widths
+      );
+
+      return buildZip([
+        ["[Content_Types].xml",        CONTENT_TYPES_XML],
+        ["_rels/.rels",                ROOT_RELS_XML],
+        ["xl/workbook.xml",            workbookXml(DAY_LABEL)],
+        ["xl/_rels/workbook.xml.rels", WORKBOOK_RELS_XML],
+        ["xl/styles.xml",              STYLES_XML],
+        ["xl/worksheets/sheet1.xml",   sheetXml]
+      ]);
+    }
+
+    function downloadResults() {
+      const blob = buildWorkbook(game.email, game.score);
+
+      // Create a temporary link, click it to start the download, then tidy up
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileNameFromEmail(game.email);
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        URL.revokeObjectURL(link.href);
+        link.remove();
+      }, 1500);
+    }
+
+
+    /* =====================================================================
+       8. START THE GAME
+       ===================================================================== */
+
+    showStartScreen();
+  </script>
+</body>
+
+</html>
