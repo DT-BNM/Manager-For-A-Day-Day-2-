@@ -266,6 +266,139 @@
     .meet li:last-child {
       border: 0;
     }
+
+
+    /* ---------- 6. Sound button, reactions and confetti ---------- */
+
+    /* Mute button, fixed in the top right corner */
+    .mutebtn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 60;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      line-height: 1;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .mutebtn:hover { border-color: var(--acc); }
+
+    /* Reaction popup: appears over the screen when the player answers */
+    .react-pop {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.6);
+      cursor: pointer;
+      animation: fadein 0.15s ease-out;
+      transition: opacity 0.25s;
+    }
+
+    .react-pop.out { opacity: 0; }
+
+    .react-card {
+      width: min(86vw, 360px);
+      padding: 26px 22px 20px;
+      text-align: center;
+      background: var(--card);
+      border: 3px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: cardin 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    .react-card.good { border-color: var(--good); }
+    .react-card.ok   { border-color: var(--mid); }
+    .react-card.bad  { border-color: var(--bad); }
+
+    .react-card .big {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 5rem;
+      line-height: 1.1;
+    }
+
+    .react-card.good .big { animation: pop 0.6s ease-out; }
+    .react-card.ok   .big { animation: wiggle 0.6s ease-in-out; }
+    .react-card.bad  .big { animation: shake 0.5s ease-in-out; }
+
+    .react-card .cap {
+      display: block;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .react-card .tap {
+      display: block;
+      margin-top: 12px;
+      color: var(--mute);
+      font-size: 0.8rem;
+    }
+
+    @keyframes fadein {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes cardin {
+      from { transform: scale(0.6); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(0.2) rotate(-20deg); }
+      60%  { transform: scale(1.35) rotate(8deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0); }
+      25%      { transform: rotate(-14deg); }
+      75%      { transform: rotate(14deg); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-9px); }
+      40%, 80% { transform: translateX(9px); }
+    }
+
+    /* Confetti */
+    .confetti {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .confetti i {
+      position: absolute;
+      top: -16px;
+      width: 9px;
+      height: 14px;
+      border-radius: 2px;
+      animation: fall linear forwards;
+    }
+
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(540deg); }
+    }
+
+    /* Switch off movement for anyone who has asked their device for less of it */
+    @media (prefers-reduced-motion: reduce) {
+      .react-card, .react-card .big { animation: none !important; }
+    }
   </style>
 </head>
 
@@ -285,6 +418,7 @@
        5. Small helpers    (text tidying, email checks)
        6. Screens          (start, question, finish)
        7. Excel download   (builds a real .xlsx file with no libraries)
+       7b. Sound, music and reactions   (all made in the browser)
        8. Start the game
        ===================================================================== */
 
@@ -299,6 +433,9 @@
 
     const SUBMIT_LABEL_NEXT = "Next moment";
     const SUBMIT_LABEL_LAST = "Close the day";
+
+    // Set to false to switch off all sound effects, music and the mute button
+    const SOUND_ENABLED = true;
 
     // Which day this file is for. It appears on the start screen and as the sheet name in Excel.
     // (The Day 1 and Day 2 files share all the same code. Only DAY_LABEL and QUESTIONS differ.)
@@ -394,7 +531,7 @@
         team: "RMS",
         time: "09:00",
         title: "Getting certified",
-        scenario: "A colleague in FRM has been told that they need PKMC certification for their role. They know that the certification is mandatory but are unsure which team coordinates it.",
+        scenario: "A staff member in FRM has been told that they need PKMC certification for their role. They know that the certification is mandatory but are unsure which team coordinates it.",
         ask: "What should they do next?",
         options: [
           {
@@ -437,7 +574,7 @@
             points: POINTS_POOR
           },
           {
-            text: "Ask one colleague to run it from their personal device",
+            text: "Ask one staff member to run it from their personal device",
             points: POINTS_POOR
           }
         ]
@@ -592,7 +729,7 @@
         team: "RMS",
         time: "15:00",
         title: "Confirmation is due",
-        scenario: "A new colleague has finished their probation, and their confirmation as a permanent member of staff is due this month.",
+        scenario: "A new staff member has finished their probation, and their confirmation as a permanent member of staff is due this month.",
         hint: "Probation is the trial period at the start of a job. Confirmation is when the job is made permanent.",
         ask: "What should happen?",
         options: [
@@ -769,6 +906,7 @@
           <p class="mute small">
             About 5 minutes. No finance knowledge needed.
             Up to 100 points per moment, 1,000 in total.
+            Sound and music play once you start. Use the 🔊 button in the top right to mute.
           </p>
 
           <label for="email"><b>Your email address</b></label>
@@ -799,6 +937,8 @@
           score: 0,
           answered: false
         };
+        audio.start();
+        audio.sfx("click");
         showQuestion();
       }
 
@@ -823,6 +963,7 @@
     }
 
     function showQuestion() {
+      closeReactionPopup();
       const question = QUESTIONS[game.index];
       const team = TEAMS[question.team];
       game.answered = false;
@@ -922,6 +1063,11 @@
       // The explanation: this choice's own "why", otherwise the question's general one
       const explanation = chosen.why || question.explanation || "";
 
+      // Sound, reaction popup and (for the best answer) confetti
+      playAnswerSound(chosen.points);
+      showReactionPopup(pickReaction(chosen.points));
+      if (chosen.points === POINTS_BEST) confetti(26);
+
       // If they did not pick the best answer, remind them what it was
       const bestAnswerNote = chosen.points === POINTS_BEST
         ? ""
@@ -953,6 +1099,9 @@
 
     // Note: the score is deliberately NOT shown here. It only goes into the Excel file.
     function showFinishScreen() {
+      closeReactionPopup();
+      audio.sfx("finish");
+      confetti(70);
       const firstName = firstNameFromEmail(game.email);
       const greeting = firstName ? `, ${escapeHtml(firstName)}` : "";
 
@@ -1272,6 +1421,295 @@
       }, 1500);
     }
 
+
+
+    /* =====================================================================
+       7b. SOUND, MUSIC AND REACTIONS
+       Everything here is made in the browser. There are no audio or image
+       files to add to GitHub.
+
+       - Sound effects and the background tune are synthesised with the
+         Web Audio API (simple beeps and notes).
+       - Music starts when the player clicks "Start my day", because
+         browsers do not allow sound before a click.
+       - The round button in the top right corner mutes everything.
+       - To switch all sound off, set SOUND_ENABLED to false in Settings.
+       - Reaction popup: edit the wording in REACTIONS below, and how long it
+         stays up with POPUP_SECONDS.
+       ===================================================================== */
+
+    const REACTIONS = {
+      good: [
+        { e: "🎉", t: "Boss move! The department is in safe hands." },
+        { e: "😎", t: "Smooth. Compliance is smiling." },
+        { e: "🏆", t: "Textbook answer!" },
+        { e: "🤩", t: "That is exactly what a good manager does." },
+        { e: "💪", t: "Nicely done. Risk approved." },
+        { e: "🙌", t: "Spot on. Take a bow." }
+      ],
+      ok: [
+        { e: "🤔", t: "Close, but not quite there." },
+        { e: "😅", t: "Good instinct. It just needs one more step." },
+        { e: "🫤", t: "Halfway to a great answer." },
+        { e: "🧐", t: "On the right track. Check the best answer below." }
+      ],
+      bad: [
+        { e: "😬", t: "Oops. Good thing this is only a game." },
+        { e: "🙈", t: "Let's pretend that didn't happen." },
+        { e: "🫠", t: "Not this time. Better to learn it here than on the job." },
+        { e: "🚨", t: "Risk alert! Read the explanation below." },
+        { e: "😵‍💫", t: "Tricky one. Now you know for next time." }
+      ]
+    };
+
+    // Picks a random reaction for the answer, avoiding the one used last time
+    const lastReaction = { good: -1, ok: -1, bad: -1 };
+
+    function pickReaction(points) {
+      const kind = points === POINTS_BEST ? "good" : points === POINTS_PARTIAL ? "ok" : "bad";
+      const pool = REACTIONS[kind];
+      let index = Math.floor(Math.random() * pool.length);
+      if (pool.length > 1 && index === lastReaction[kind]) {
+        index = (index + 1) % pool.length;
+      }
+      lastReaction[kind] = index;
+      return { kind: kind, emoji: pool[index].e, text: pool[index].t };
+    }
+
+    // How long the popup stays up before fading (a tap closes it sooner)
+    const POPUP_SECONDS = 2.2;
+    let popupTimer = null;
+
+    function closeReactionPopup() {
+      clearTimeout(popupTimer);
+      const popup = document.querySelector(".react-pop");
+      if (popup) popup.remove();
+    }
+
+    // Shows the reaction as a popup in the middle of the screen
+    function showReactionPopup(reaction) {
+      closeReactionPopup();
+
+      const popup = document.createElement("div");
+      popup.className = "react-pop";
+      popup.setAttribute("role", "status");
+      popup.innerHTML = `
+        <div class="react-card ${reaction.kind}">
+          <span class="big" aria-hidden="true">${reaction.emoji}</span>
+          <span class="cap">${escapeHtml(reaction.text)}</span>
+          <span class="tap">Tap to continue</span>
+        </div>
+      `;
+      popup.onclick = closeReactionPopup;
+      document.body.appendChild(popup);
+
+      popupTimer = setTimeout(() => {
+        popup.classList.add("out");
+        popupTimer = setTimeout(() => popup.remove(), 260);
+      }, POPUP_SECONDS * 1000);
+    }
+
+    // A burst of falling confetti. Skipped for people who prefer less motion.
+    function confetti(count) {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const colours = ["#38bdf8", "#34d399", "#fbbf24", "#f472b6", "#a78bfa", "#fb923c"];
+      const layer = document.createElement("div");
+      layer.className = "confetti";
+
+      for (let i = 0; i < count; i++) {
+        const piece = document.createElement("i");
+        piece.style.left = (Math.random() * 100) + "vw";
+        piece.style.background = colours[i % colours.length];
+        piece.style.animationDelay = (Math.random() * 0.4) + "s";
+        piece.style.animationDuration = (1.2 + Math.random() * 1.2) + "s";
+        piece.style.transform = "rotate(" + Math.floor(Math.random() * 360) + "deg)";
+        layer.appendChild(piece);
+      }
+
+      document.body.appendChild(layer);
+      setTimeout(() => layer.remove(), 3200);
+    }
+
+
+    /* ---------- Sound engine ---------- */
+
+    const audio = (function () {
+      let ctx = null;          // the audio context, created on first use
+      let master = null;       // master volume (0 when muted)
+      let musicBus = null;     // volume for the background tune
+      let sfxBus = null;       // volume for sound effects
+      let noiseBuffer = null;  // a short burst of noise, used as a hi-hat
+      let muted = false;
+      let musicRunning = false;
+      let timer = null;
+      let step = 0;            // position in the tune (0 to 31)
+      let nextTime = 0;        // when the next note should play
+
+      const STEP_SECONDS = 0.25;   // one eighth note at 120 beats per minute
+
+      // Note frequencies in Hz (C major pentatonic keeps everything cheerful)
+      const C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880.00, C6 = 1046.50;
+
+      // Bass note for each of the four bars: C, A, F, G
+      const BASS = [130.81, 110.00, 87.31, 98.00];
+
+      // 32 steps (four bars of eight). 0 means a rest.
+      const MELODY = [
+        E5, 0, G5, E5,  C5, 0, D5, E5,
+        E5, 0, A5, G5,  E5, 0, D5, C5,
+        A5, 0, G5, E5,  G5, 0, A5, 0,
+        D5, 0, E5, G5,  D5, 0, C5, 0
+      ];
+
+      // Sets everything up the first time. Returns false if sound is not possible.
+      function ensure() {
+        if (!SOUND_ENABLED) return false;
+
+        if (!ctx) {
+          const AudioCtor = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtor) return false;
+          try {
+            ctx = new AudioCtor();
+          } catch (error) {
+            return false;
+          }
+
+          master = ctx.createGain();
+          master.gain.value = muted ? 0 : 1;
+          master.connect(ctx.destination);
+
+          musicBus = ctx.createGain();
+          musicBus.gain.value = 0.14;
+          musicBus.connect(master);
+
+          sfxBus = ctx.createGain();
+          sfxBus.gain.value = 0.30;
+          sfxBus.connect(master);
+
+          const length = Math.floor(ctx.sampleRate * 0.1);
+          noiseBuffer = ctx.createBuffer(1, length, ctx.sampleRate);
+          const data = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+        }
+
+        if (ctx.state === "suspended") ctx.resume();
+        return true;
+      }
+
+      // Plays one note
+      function tone(freq, start, duration, type, bus, volume, slideTo) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + duration);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gain);
+        gain.connect(bus);
+        osc.start(start);
+        osc.stop(start + duration + 0.03);
+      }
+
+      // Plays a tiny hi-hat tick
+      function tick(start, volume) {
+        const source = ctx.createBufferSource();
+        source.buffer = noiseBuffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 6000;
+        const gain = ctx.createGain();
+        gain.gain.value = volume;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(musicBus);
+        source.start(start);
+      }
+
+      // Schedules the tune a little way ahead of the clock so it never stutters
+      function scheduleMusic() {
+        while (nextTime < ctx.currentTime + 0.4) {
+          const bar = Math.floor(step / 8) % 4;
+          const position = step % 8;
+
+          if (position % 2 === 0) tone(BASS[bar], nextTime, STEP_SECONDS * 1.8, "triangle", musicBus, 0.8);
+          if (MELODY[step]) tone(MELODY[step], nextTime, STEP_SECONDS * 0.9, "square", musicBus, 0.35);
+          if (position % 2 === 1) tick(nextTime, 0.4);
+
+          nextTime += STEP_SECONDS;
+          step = (step + 1) % MELODY.length;
+        }
+      }
+
+      function startMusic() {
+        if (!ensure() || musicRunning) return;
+        musicRunning = true;
+        step = 0;
+        nextTime = ctx.currentTime + 0.1;
+        scheduleMusic();
+        timer = setInterval(scheduleMusic, 100);
+      }
+
+      // Sound effects: "good", "ok", "bad", "finish" and "click"
+      function sfx(kind) {
+        if (!ensure()) return;
+        const t = ctx.currentTime + 0.02;
+
+        if (kind === "good") {
+          [C5, E5, G5, C6].forEach((f, i) => tone(f, t + i * 0.09, 0.22, "triangle", sfxBus, 0.9));
+        } else if (kind === "ok") {
+          tone(392.00, t, 0.18, "triangle", sfxBus, 0.8);
+          tone(329.63, t + 0.16, 0.30, "triangle", sfxBus, 0.8);
+        } else if (kind === "bad") {
+          tone(160, t, 0.45, "sawtooth", sfxBus, 0.7, 80);
+          tone(120, t, 0.45, "square", sfxBus, 0.4, 60);
+        } else if (kind === "finish") {
+          [C5, E5, G5, C6].forEach((f, i) => tone(f, t + i * 0.14, 0.25, "triangle", sfxBus, 0.9));
+          [C5, E5, G5, C6].forEach((f) => tone(f, t + 0.65, 0.9, "triangle", sfxBus, 0.6));
+        } else if (kind === "click") {
+          tone(660, t, 0.06, "square", sfxBus, 0.5);
+        }
+      }
+
+      function toggleMute() {
+        muted = !muted;
+        if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.02);
+        return muted;
+      }
+
+      // Pause everything when the tab is hidden, resume when it comes back
+      document.addEventListener("visibilitychange", () => {
+        if (!ctx) return;
+        if (document.hidden) ctx.suspend();
+        else ctx.resume();
+      });
+
+      return { start: startMusic, sfx: sfx, toggleMute: toggleMute };
+    })();
+
+    // Picks the right sound effect for an answer
+    function playAnswerSound(points) {
+      if (points === POINTS_BEST)         audio.sfx("good");
+      else if (points === POINTS_PARTIAL) audio.sfx("ok");
+      else                                audio.sfx("bad");
+    }
+
+    // The round mute button in the top right corner
+    (function addMuteButton() {
+      if (!SOUND_ENABLED) return;
+      const button = document.createElement("button");
+      button.className = "mutebtn";
+      button.type = "button";
+      button.textContent = "🔊";
+      button.setAttribute("aria-label", "Mute or unmute sound");
+      button.onclick = () => {
+        const isMuted = audio.toggleMute();
+        button.textContent = isMuted ? "🔇" : "🔊";
+      };
+      document.body.appendChild(button);
+    })();
 
     /* =====================================================================
        8. START THE GAME
