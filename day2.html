@@ -172,6 +172,12 @@
       font-weight: 800;
     }
 
+    /* Full team name, highlighted in the team's colour */
+    .team-name {
+      color: var(--tc);
+      font-weight: 800;
+    }
+
     /* Answer buttons */
     .opt {
       display: block;
@@ -302,50 +308,51 @@
     /* =====================================================================
        2. TEAMS
        To change a team's wording, edit it here. It updates everywhere.
-       "line" is the short tagline, "what" is the longer plain-English description.
+       "name" is the full team name (shown highlighted, followed by the abbreviation),
+       "what" is the longer plain-English description.
        ===================================================================== */
 
     const TEAMS = {
       RMS: {
         icon: "🎓",
         color: "#a78bfa",
-        line: "The admin team (Resource Management Section)",
+        name: "Resource Management Section",
         what: "We look after staff confirmation, professional certificates such as PPKM, and DOP (our HR site), plus the resources, budget and training that keep the department running."
       },
       OPRISK: {
         icon: "🛡️",
         color: "#fb923c",
-        line: "Spotting what could go wrong",
+        name: "Operational Risk",
         what: "We look for things that could go wrong, such as mistakes, broken processes, system failures or outside events, before they cause losses."
       },
       FMT: {
         icon: "🖥️",
         color: "#38bdf8",
-        line: "Systems for treasury",
+        name: "Financial Market Technology",
         what: "We build and look after the computer systems that our treasury (money-handling) teams use every day."
       },
       DART: {
         icon: "📊",
         color: "#34d399",
-        line: "Data and digital",
+        name: "Data Analytics, Reporting and Technology",
         what: "We look after the department's data and use it to find insights and make work more digital."
       },
       FRM: {
         icon: "📈",
         color: "#f472b6",
-        line: "Watching market risk",
+        name: "Financial Risk Management",
         what: "We keep an eye on how risky our investments are, check we stay within the rules, report any breach to senior management, and explain how our investments performed."
       },
       COMPLC: {
         icon: "⚖️",
         color: "#fbbf24",
-        line: "Rules and conduct",
+        name: "Compliance",
         what: "We make sure everyone follows the rules, the laws and our code of conduct."
       },
       PMO: {
         icon: "🗂️",
         color: "#2dd4bf",
-        line: "Project management",
+        name: "Project Management Office",
         what: "We are the project managers. We keep projects on time, on budget, and make sure everyone knows who is doing what."
       }
     };
@@ -365,6 +372,8 @@
          facts        (optional) a short list of figures shown under the scenario
          hint         (optional) a plain-English tip for people outside the team
          ask          (optional) the line above the answers. Default: "What would you do?"
+         hideTeamName (optional) true = the banner shows only the abbreviation. Use it when the
+                      full team name would give away the answer.
          explanation  (optional) shown after answering. Used for any option without its own "why"
          options      three or four choices, each with:
                         text    what the player reads on the button
@@ -821,6 +830,13 @@
 
       const progressPercent = (game.index / QUESTIONS.length) * 100;
 
+      // Banner title: the full team name (highlighted), then the abbreviation.
+      // A question can set hideTeamName: true when the full name would give away its answer.
+      const abbreviationTag = `<span class="tag" style="${teamColorStyle(question.team)}">${question.team}</span>`;
+      const teamTitle = question.hideTeamName
+        ? abbreviationTag
+        : `<span class="team-name">${escapeHtml(team.name)}</span> ${abbreviationTag}`;
+
       const answerButtons = game.options.map((option, position) => `
         <button class="opt" data-k="${position}">${escapeHtml(option.text)}</button>
       `).join("");
@@ -846,7 +862,7 @@
             <span class="ic">${team.icon}</span>
             <div>
               <b>
-                <span class="tag" style="${teamColorStyle(question.team)}">${question.team}</span>${escapeHtml(team.line)}
+                ${teamTitle}
               </b>
               <span class="small mute">${escapeHtml(team.what)}</span>
             </div>
@@ -942,7 +958,7 @@
 
       // Passport stamps (one per team)
       const stamps = TEAM_ORDER.map((key) => `
-        <span class="stamp" style="${teamColorStyle(key)}">${TEAMS[key].icon} ${key}</span>
+        <span class="stamp" style="${teamColorStyle(key)}">${TEAMS[key].icon} ${TEAMS[key].name} (${key})</span>
       `).join("");
 
       // "Meet the teams" list
@@ -950,7 +966,7 @@
         <li>
           <span style="font-size:1.8rem">${TEAMS[key].icon}</span>
           <div>
-            <b><span class="tag" style="${teamColorStyle(key)}">${key}</span>${escapeHtml(TEAMS[key].line)}</b><br>
+            <b><span class="team-name" style="${teamColorStyle(key)}">${escapeHtml(TEAMS[key].name)}</span> <span class="tag" style="${teamColorStyle(key)}">${key}</span></b><br>
             <span class="small mute">${escapeHtml(TEAMS[key].what)}</span>
           </div>
         </li>
