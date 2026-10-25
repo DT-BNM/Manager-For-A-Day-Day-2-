@@ -395,9 +395,126 @@
       to { transform: translateY(110vh) rotate(540deg); }
     }
 
+    /* Score card on the final screen */
+    .scorecard {
+      max-width: 320px;
+      margin: 14px auto;
+      padding: 14px 18px;
+      background: #0b1222;
+      border: 2px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .scorecard .label {
+      display: block;
+      color: var(--mute);
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .scorecard .num {
+      display: block;
+      font-size: 2.4rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+
+    .scorecard .num small {
+      color: var(--mute);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .scorecard .gift {
+      display: block;
+      margin-top: 6px;
+      color: var(--mid);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    /* Gold version for a perfect score */
+    .scorecard.perfect {
+      border-color: var(--mid);
+      background: #78350f33;
+    }
+
+    .scorecard.perfect .num { color: var(--mid); }
+
+    /* Perfect-score popup: sits above everything, stays until the player taps Continue */
+    .perfect-pop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.82);
+      animation: fadein 0.2s ease-out;
+      transition: opacity 0.25s;
+    }
+
+    .perfect-pop.out { opacity: 0; }
+
+    .perfect-card {
+      width: min(90vw, 400px);
+      padding: 30px 24px 24px;
+      text-align: center;
+      background: var(--card);
+      border: 4px solid var(--mid);
+      border-radius: 26px;
+      box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.18),
+                  0 0 60px rgba(251, 191, 36, 0.45),
+                  0 20px 60px rgba(0, 0, 0, 0.6);
+      animation: cardin 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    .perfect-card .trophy {
+      display: block;
+      font-size: 6rem;
+      line-height: 1.1;
+      animation: pop 0.8s ease-out;
+    }
+
+    .perfect-card .sparkles {
+      display: block;
+      font-size: 1.5rem;
+      letter-spacing: 0.3em;
+      animation: glow 1.4s ease-in-out infinite alternate;
+    }
+
+    .perfect-card h2 {
+      margin: 6px 0;
+      color: var(--mid);
+      font-size: 1.9rem;
+    }
+
+    .perfect-card .pts {
+      display: block;
+      font-size: 2.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .perfect-card .pts small {
+      color: var(--mute);
+      font-size: 1.2rem;
+    }
+
+    .perfect-card p { margin: 10px 0 18px; }
+
+    @keyframes glow {
+      from { opacity: 0.5; transform: scale(0.95); }
+      to   { opacity: 1;   transform: scale(1.05); }
+    }
+
     /* Switch off movement for anyone who has asked their device for less of it */
     @media (prefers-reduced-motion: reduce) {
-      .react-card, .react-card .big { animation: none !important; }
+      .react-card, .react-card .big,
+      .perfect-card, .perfect-card .trophy, .perfect-card .sparkles { animation: none !important; }
     }
   </style>
 </head>
@@ -436,6 +553,9 @@
 
     // Set to false to switch off all sound effects, music and the mute button
     const SOUND_ENABLED = true;
+
+    // Line shown in the popup (and under the score) when a player gets full marks
+    const PERFECT_MESSAGE = "Hand your Excel results file to a member of staff to claim your gift.";
 
     // Which day this file is for. It appears on the start screen and as the sheet name in Excel.
     // (The Day 1 and Day 2 files share all the same code. Only DAY_LABEL and QUESTIONS differ.)
@@ -811,7 +931,7 @@
          game.email     the player's email (lowercase, tidied)
          game.index     which question we are on (0 = first)
          game.options   this question's answers in the (shuffled) order shown
-         game.score     running total, never shown to the player
+         game.score     running total (shown on the final screen and saved in the Excel file)
          game.answered  true once they have picked an answer for this question
        Nothing is stored in the browser, so a refresh starts a fresh game.
        ===================================================================== */
@@ -1044,7 +1164,7 @@
       const best = game.options.find((option) => option.points === POINTS_BEST);
       const isLastQuestion = game.index === QUESTIONS.length - 1;
 
-      // Score is kept quietly. It is never shown on screen.
+      // Score is added up quietly during the game and revealed on the final screen.
       game.score += chosen.points;
 
       // Colour every answer so the player can see which was best
@@ -1097,11 +1217,24 @@
 
     /* ---------- Finish screen ---------- */
 
-    // Note: the score is deliberately NOT shown here. It only goes into the Excel file.
+    // Shows the final score. A perfect score also gets a special popup, fanfare and extra confetti.
     function showFinishScreen() {
       closeReactionPopup();
-      audio.sfx("finish");
-      confetti(70);
+
+      const maxScore = QUESTIONS.length * POINTS_BEST;       // 1,000 with ten questions
+      const perfect = game.score === maxScore;
+      const scoreText = game.score.toLocaleString("en-US");
+      const maxText = maxScore.toLocaleString("en-US");
+
+      if (perfect) {
+        audio.sfx("perfect");
+        confetti(120);
+        setTimeout(() => { if (game) confetti(90); }, 900);
+        setTimeout(() => { if (game) confetti(90); }, 1800);
+      } else {
+        audio.sfx("finish");
+        confetti(70);
+      }
       const firstName = firstNameFromEmail(game.email);
       const greeting = firstName ? `, ${escapeHtml(firstName)}` : "";
 
@@ -1126,6 +1259,12 @@
           <div style="font-size:3rem">🏆</div>
           <h1>Day complete${greeting}!</h1>
 
+          <div class="scorecard${perfect ? " perfect" : ""}">
+            <span class="label">Your score</span>
+            <span class="num">${scoreText} <small>/ ${maxText}</small></span>
+            ${perfect ? `<span class="gift">🎁 ${escapeHtml(PERFECT_MESSAGE)}</span>` : ""}
+          </div>
+
           <p>
             Thanks for running the department for a day. Download your results
             file and hand it to a member of staff, who will check it for you.
@@ -1147,6 +1286,8 @@
 
       document.getElementById("download").onclick = downloadResults;
       document.getElementById("again").onclick = showStartScreen;
+
+      if (perfect) showPerfectPopup(scoreText, maxText);
     }
 
 
@@ -1509,6 +1650,39 @@
       }, POPUP_SECONDS * 1000);
     }
 
+    // Special popup for a perfect score. It stays up until the player taps Continue.
+    function closePerfectPopup() {
+      const popup = document.querySelector(".perfect-pop");
+      if (!popup) return;
+      popup.classList.add("out");
+      setTimeout(() => popup.remove(), 260);
+    }
+
+    function showPerfectPopup(scoreText, maxText) {
+      closePerfectPopup();
+
+      const popup = document.createElement("div");
+      popup.className = "perfect-pop";
+      popup.setAttribute("role", "alertdialog");
+      popup.setAttribute("aria-label", "Perfect score");
+      popup.innerHTML = `
+        <div class="perfect-card">
+          <span class="trophy" aria-hidden="true">🏆</span>
+          <span class="sparkles" aria-hidden="true">✨ 🎉 ✨</span>
+          <h2>Perfect score!</h2>
+          <span class="pts">${scoreText} <small>/ ${maxText}</small></span>
+          <p>Every single call was the best one. Outstanding work, Manager!<br>
+             <b>${escapeHtml(PERFECT_MESSAGE)}</b></p>
+          <button class="btn" type="button">Continue</button>
+        </div>
+      `;
+      document.body.appendChild(popup);
+
+      const continueButton = popup.querySelector("button");
+      continueButton.onclick = closePerfectPopup;
+      continueButton.focus();
+    }
+
     // A burst of falling confetti. Skipped for people who prefer less motion.
     function confetti(count) {
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -1550,6 +1724,7 @@
 
       // Note frequencies in Hz (C major pentatonic keeps everything cheerful)
       const C5 = 523.25, D5 = 587.33, E5 = 659.25, G5 = 783.99, A5 = 880.00, C6 = 1046.50;
+      const E6 = 1318.51, G6 = 1567.98, C7 = 2093.00;   // higher notes, used by the perfect-score fanfare
 
       // Bass note for each of the four bars: C, A, F, G
       const BASS = [130.81, 110.00, 87.31, 98.00];
@@ -1652,7 +1827,7 @@
         timer = setInterval(scheduleMusic, 100);
       }
 
-      // Sound effects: "good", "ok", "bad", "finish" and "click"
+      // Sound effects: "good", "ok", "bad", "finish", "perfect" and "click"
       function sfx(kind) {
         if (!ensure()) return;
         const t = ctx.currentTime + 0.02;
@@ -1668,6 +1843,12 @@
         } else if (kind === "finish") {
           [C5, E5, G5, C6].forEach((f, i) => tone(f, t + i * 0.14, 0.25, "triangle", sfxBus, 0.9));
           [C5, E5, G5, C6].forEach((f) => tone(f, t + 0.65, 0.9, "triangle", sfxBus, 0.6));
+        } else if (kind === "perfect") {
+          // A rising run, a long bright chord, then a sparkle on top
+          [C5, E5, G5, C6, E6, G6].forEach((f, i) => tone(f, t + i * 0.1, 0.24, "triangle", sfxBus, 0.9));
+          [C5, E5, G5, C6].forEach((f) => tone(f, t + 0.7, 1.5, "triangle", sfxBus, 0.7));
+          [G5, C6, E6, G6].forEach((f) => tone(f, t + 0.7, 0.9, "square", sfxBus, 0.18));
+          [G6, E6, G6, C7].forEach((f, i) => tone(f, t + 1.0 + i * 0.12, 0.3, "triangle", sfxBus, 0.6));
         } else if (kind === "click") {
           tone(660, t, 0.06, "square", sfxBus, 0.5);
         }
