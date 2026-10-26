@@ -686,7 +686,7 @@
             points: POINTS_POOR
           },
           {
-            text: "Understand the process, confirm what is needed, test it properly and get the right approvals",
+            text: "Understand the process, test it and obtain the right approvals",
             points: POINTS_BEST
           },
           {
@@ -745,7 +745,7 @@
         ask: "What should we do?",
         options: [
           {
-            text: "Don't worry. It is backed up every night, so it must work",
+            text: "Assume the nightly backups must be working",
             points: POINTS_POOR,
             why: "A backup you have never restored is a hope, not a plan. Problems such as missing or damaged files only show up when you try."
           },
@@ -755,7 +755,7 @@
             why: "Helpful, but only a real test on our own setup proves it works for us."
           },
           {
-            text: "Test a restore on a safe copy, check the data is complete, and schedule regular tests",
+            text: "Test the restore, verify the data and schedule regular tests",
             points: POINTS_BEST,
             why: "Correct. Practising a restore is the only way to know the backup will save us on a bad day."
           }
@@ -770,17 +770,17 @@
         scenario: "At lunch an old friend asks: 'You work in treasury. Where are interest rates going? Anything coming that I should know about?' You have read an internal paper that is not public yet.",
         options: [
           {
-            text: "Give them a hint. They are a friend and it is only a tip",
+            text: "Give them a hint because they are a friend",
             points: POINTS_POOR,
             why: "Sharing information that is not public can harm the Bank and breaks the code of conduct, even between friends."
           },
           {
-            text: "Don't mention the paper, but tell them what you personally expect",
+            text: "Share only your personal view, not the paper",
             points: POINTS_PARTIAL,
             why: "Your 'personal view' can still be taken as a hint when it comes from someone with inside knowledge."
           },
           {
-            text: "Say you can't discuss anything that is not public, and tell Compliance if they keep asking",
+            text: "Decline and notify Compliance if they keep asking",
             points: POINTS_BEST,
             why: "Correct. A polite no protects your friend, the Bank and you."
           }
@@ -854,17 +854,17 @@
         ask: "What should happen?",
         options: [
           {
-            text: "Nobody needs to do anything. It will sort itself out",
+            text: "Do nothing; confirmation will happen automatically",
             points: POINTS_POOR,
             why: "Confirmations need people to act. Left alone, they can be missed or delayed."
           },
           {
-            text: "Tell their manager only",
+            text: "Inform their manager only",
             points: POINTS_PARTIAL,
             why: "A good start, but RMS looks after staff confirmation, so they need to be in the loop too."
           },
           {
-            text: "Make sure their manager and RMS both know, so the assessment and paperwork are done on time",
+            text: "Notify the manager and RMS to complete confirmation on time",
             points: POINTS_BEST,
             why: "Correct. RMS handles staff confirmation, and it goes smoothly when everyone starts early."
           }
@@ -885,7 +885,7 @@
             why: "A rushed release to the live system can break things just as people are leaving, when fewer people are around to fix it."
           },
           {
-            text: "Release it, but keep an eye on it",
+            text: "Release it now and monitor it closely",
             points: POINTS_PARTIAL,
             why: "Watching helps, but it has not been properly tested, so you may only find the problem after it happens."
           },
